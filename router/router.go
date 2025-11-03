@@ -18,7 +18,7 @@ func Setup() *gin.Engine {
 	r.StaticFile("/version", "./version.txt")
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://payment-frontend-production.up.railway.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://localhost:5173", "https://payment-frontend-production.up.railway.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
