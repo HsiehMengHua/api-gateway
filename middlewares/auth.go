@@ -20,7 +20,7 @@ func RequireAuthorization() gin.HandlerFunc {
 
 		// Validate token
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
-			return []byte(os.Getenv("SECRET_KEY")), nil
+			return []byte(os.Getenv("USER_TOKEN_SECRET_KEY")), nil
 		}, jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 
 		if err != nil {
