@@ -35,6 +35,14 @@ func RequireAuthorization() gin.HandlerFunc {
 				return
 			}
 
+			userId, ok := claims["sub"]
+			if !ok {
+				c.AbortWithStatus(http.StatusUnauthorized)
+				return
+			}
+
+			c.Set("user_id", userId)
+
 			c.Next()
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)

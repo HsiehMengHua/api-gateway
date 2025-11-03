@@ -2,6 +2,7 @@ package router
 
 import (
 	"api-gateway/middlewares"
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -89,11 +90,11 @@ func Setup() *gin.Engine {
 		}
 
 		paymentApi.POST("/deposit", func(c *gin.Context) {
-			handler(c, proxy)
+			handlerWithUserId(c, proxy)
 		})
 
 		paymentApi.POST("/withdraw", func(c *gin.Context) {
-			handler(c, proxy)
+			handlerWithUserId(c, proxy)
 		})
 
 		paymentApi.POST("/transfer", func(c *gin.Context) {
@@ -120,5 +121,36 @@ func handler(c *gin.Context, proxy *httputil.ReverseProxy) {
 		scheme = "http://"
 	}
 	log.Infof("Forwarding to `%s%s%s`", scheme, c.Request.Host, c.Request.RequestURI)
+	proxy.ServeHTTP(c.Writer, c.Request)
+}
+
+func handlerWithUserId(c *gin.Context, proxy *httputil.ReverseProxy) {
+	userId, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user_id not found"})
+		return
+	}
+
+	var userIdStr string
+	switch v := userId.(type) {
+	case string:
+		userIdStr = v
+	case float64:
+		userIdStr = fmt.Sprintf("%.0f", v)
+	default:
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user_id type"})
+		return
+	}
+
+	c.Request.Header.Set("X-User-Id", userIdStr)
+
+	var scheme string
+	if c.Request.TLS != nil {
+		scheme = "https://"
+	} else {
+		scheme = "http://"
+	}
+	log.Infof("Forwarding to `%s%s%s` with user_id: %v", scheme, c.Request.Host, c.Request.RequestURI, userId)
+
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
