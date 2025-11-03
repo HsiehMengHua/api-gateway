@@ -1,11 +1,14 @@
 package router
 
 import (
+	"api-gateway/middlewares"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,6 +16,14 @@ import (
 func Setup() *gin.Engine {
 	r := gin.Default()
 	r.StaticFile("/version", "./version.txt")
+
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173", "https://payment-frontend-production.up.railway.app"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}))
 
 	// User API Proxy
 	{
@@ -28,9 +39,17 @@ func Setup() *gin.Engine {
 			if req.URL.Path == "/user" {
 				req.URL.Path = "/api/v1/user"
 			}
+
+			if req.URL.Path == "/user/login" {
+				req.URL.Path = "/api/v1/user/login"
+			}
 		}
 
 		userApi.POST("", func(c *gin.Context) {
+			proxy.ServeHTTP(c.Writer, c.Request)
+		})
+
+		userApi.POST("/login", func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
 		})
 	}
@@ -38,6 +57,8 @@ func Setup() *gin.Engine {
 	// Payment API Proxy
 	{
 		paymentApi := r.Group("/payments")
+		paymentApi.Use(middlewares.RequireAuthorization())
+
 		target, _ := url.Parse(os.Getenv("PAYMENT_SERVICE_HOST"))
 		proxy := httputil.NewSingleHostReverseProxy(target)
 
