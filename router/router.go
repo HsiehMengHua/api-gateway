@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 )
 
 func Setup() *gin.Engine {
@@ -67,25 +68,36 @@ func Setup() *gin.Engine {
 		}
 
 		paymentApi.POST("/deposit", func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
+			handler(c, proxy)
 		})
 
 		paymentApi.POST("/withdraw", func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
+			handler(c, proxy)
 		})
 
 		paymentApi.POST("/transfer", func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
+			handler(c, proxy)
 		})
 
 		paymentApi.POST("/confirm", func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
+			handler(c, proxy)
 		})
 
 		paymentApi.POST("/cancel", func(c *gin.Context) {
-			proxy.ServeHTTP(c.Writer, c.Request)
+			handler(c, proxy)
 		})
 	}
 
 	return r
+}
+
+func handler(c *gin.Context, proxy *httputil.ReverseProxy) {
+	var scheme string
+	if c.Request.TLS != nil {
+		scheme = "https://"
+	} else {
+		scheme = "http://"
+	}
+	log.Infof("Forwarding to `%s%s%s`", scheme, c.Request.Host, c.Request.RequestURI)
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
