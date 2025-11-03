@@ -1,13 +1,31 @@
 package main
 
-import "github.com/gin-gonic/gin"
+import (
+	"api-gateway/router"
+	"os"
+
+	"github.com/joho/godotenv"
+)
+
+func init() {
+	loadEnv()
+}
 
 func main() {
-	router := gin.Default()
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	router.Run() // listens on 0.0.0.0:8080 by default
+	r := router.Setup()
+	r.Run(os.Getenv("APP_PORT"))
+}
+
+func loadEnv() {
+	env := os.Getenv("APP_ENV")
+	if env == "" {
+		env = "development"
+	}
+
+	godotenv.Load(".env." + env + ".local")
+	if env != "test" {
+		godotenv.Load(".env.local")
+	}
+	godotenv.Load(".env." + env)
+	godotenv.Load() // The Original .env
 }
