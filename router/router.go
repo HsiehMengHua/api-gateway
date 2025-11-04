@@ -19,7 +19,7 @@ func Setup() *gin.Engine {
 	r.StaticFile("/version", "./version.txt")
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "https://localhost:5173", "https://payment-frontend-production.up.railway.app"},
+		AllowOrigins:     []string{"http://localhost:5173", "https://localhost:5173", "http://localhost:8090", "https://localhost:8090", "https://payment-frontend-production.up.railway.app", "https://fake-payment-service-provider-production.up.railway.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
@@ -58,7 +58,6 @@ func Setup() *gin.Engine {
 	// Payment API Proxy
 	{
 		paymentApi := r.Group("/payments")
-		paymentApi.Use(middlewares.RequireAuthorization())
 
 		target, _ := url.Parse(os.Getenv("PAYMENT_SERVICE_HOST"))
 		proxy := httputil.NewSingleHostReverseProxy(target)
@@ -89,23 +88,23 @@ func Setup() *gin.Engine {
 			}
 		}
 
-		paymentApi.POST("/deposit", func(c *gin.Context) {
+		paymentApi.POST("/deposit", middlewares.RequireUserToken(), func(c *gin.Context) {
 			handlerWithUserId(c, proxy)
 		})
 
-		paymentApi.POST("/withdraw", func(c *gin.Context) {
+		paymentApi.POST("/withdraw", middlewares.RequireUserToken(), func(c *gin.Context) {
 			handlerWithUserId(c, proxy)
 		})
 
-		paymentApi.POST("/transfer", func(c *gin.Context) {
+		paymentApi.POST("/transfer", middlewares.RequireUserToken(), func(c *gin.Context) {
+			handlerWithUserId(c, proxy)
+		})
+
+		paymentApi.POST("/confirm", middlewares.RequireApiKey(), func(c *gin.Context) {
 			handler(c, proxy)
 		})
 
-		paymentApi.POST("/confirm", func(c *gin.Context) {
-			handler(c, proxy)
-		})
-
-		paymentApi.POST("/cancel", func(c *gin.Context) {
+		paymentApi.POST("/cancel", middlewares.RequireApiKey(), func(c *gin.Context) {
 			handler(c, proxy)
 		})
 	}

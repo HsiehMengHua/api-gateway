@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func RequireAuthorization() gin.HandlerFunc {
+func RequireUserToken() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Retrieve auth token from request
 		tokenString, err := c.Cookie("authorization")
@@ -47,5 +47,23 @@ func RequireAuthorization() gin.HandlerFunc {
 		} else {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
+	}
+}
+
+func RequireApiKey() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		apiKey := c.GetHeader("X-API-KEY")
+		if apiKey == "" {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		expectedApiKey := os.Getenv("PSP_API_KEY")
+		if apiKey != expectedApiKey {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
+
+		c.Next()
 	}
 }
