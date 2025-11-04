@@ -148,6 +148,27 @@ func Setup() *gin.Engine {
 		})
 	}
 
+	{
+		transactionApi := r.Group("/transactions")
+
+		target, _ := url.Parse(os.Getenv("USER_SERVICE_HOST"))
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.Director = func(req *http.Request) {
+			req.Host = target.Host
+			req.URL.Host = target.Host
+			req.URL.Scheme = target.Scheme
+
+			if req.URL.Path == "/transactions/user" {
+				userId := req.Header.Get("X-User-Id")
+				req.URL.Path = "/api/v1/transactions/user/" + userId
+			}
+		}
+
+		transactionApi.GET("/user", middlewares.RequireUserToken(), func(c *gin.Context) {
+			handlerWithUserId(c, proxy)
+		})
+	}
+
 	return r
 }
 
