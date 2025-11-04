@@ -44,6 +44,11 @@ func Setup() *gin.Engine {
 			if req.URL.Path == "/user/login" {
 				req.URL.Path = "/api/v1/user/login"
 			}
+
+			if req.URL.Path == "/user/current" {
+				userId := req.Header.Get("X-User-Id")
+				req.URL.Path = "/api/v1/user/" + userId
+			}
 		}
 
 		userApi.POST("", func(c *gin.Context) {
@@ -52,6 +57,10 @@ func Setup() *gin.Engine {
 
 		userApi.POST("/login", func(c *gin.Context) {
 			proxy.ServeHTTP(c.Writer, c.Request)
+		})
+
+		userApi.GET("/current", middlewares.RequireUserToken(), func(c *gin.Context) {
+			handlerWithUserId(c, proxy)
 		})
 	}
 
