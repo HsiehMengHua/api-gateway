@@ -109,6 +109,36 @@ func Setup() *gin.Engine {
 		})
 	}
 
+	// Bank account Proxy
+	{
+		bankAccountApi := r.Group("/bank-accounts")
+
+		target, _ := url.Parse(os.Getenv("USER_SERVICE_HOST"))
+		proxy := httputil.NewSingleHostReverseProxy(target)
+		proxy.Director = func(req *http.Request) {
+			req.Host = target.Host
+			req.URL.Host = target.Host
+			req.URL.Scheme = target.Scheme
+
+			if req.URL.Path == "/bank-accounts" {
+				req.URL.Path = "/api/v1/bank-accounts"
+			}
+
+			if req.URL.Path == "/bank-accounts/user" {
+				userId := req.Header.Get("X-User-Id")
+				req.URL.Path = "/api/v1/bank-accounts/user/" + userId
+			}
+		}
+
+		bankAccountApi.POST("", middlewares.RequireUserToken(), func(c *gin.Context) {
+			handlerWithUserId(c, proxy)
+		})
+
+		bankAccountApi.GET("/user", middlewares.RequireUserToken(), func(c *gin.Context) {
+			handlerWithUserId(c, proxy)
+		})
+	}
+
 	return r
 }
 
